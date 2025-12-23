@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: 222.2 84% 4.9%;
+  --color-foreground: 210 40% 98%;
+  --color-card: 222.2 84% 4.9%;
+  --color-card-foreground: 210 40% 98%;
+  --color-popover: 222.2 84% 4.9%;
+  --color-popover-foreground: 210 40% 98%;
+  --color-primary: 217.2 91.2% 59.8%;
+  --color-primary-foreground: 222.2 47.4% 11.2%;
+  --color-secondary: 217.2 32.6% 17.5%;
+  --color-secondary-foreground: 210 40% 98%;
+  --color-muted: 217.2 32.6% 17.5%;
+  --color-muted-foreground: 215 20.2% 65.1%;
+  --color-accent: 217.2 32.6% 17.5%;
+  --color-accent-foreground: 210 40% 98%;
+  --color-destructive: 0 62.8% 30.6%;
+  --color-destructive-foreground: 210 40% 98%;
+  --color-border: 217.2 32.6% 17.5%;
+  --color-input: 217.2 32.6% 17.5%;
+  --color-ring: 224.3 76.3% 48%;
+  --radius: 1rem;
+}
+
+* {
+  border-color: hsl(var(--color-border));
+}
+
+body {
+  background: linear-gradient(to bottom right, #020617, #0f172a, #020617);
+  color: hsl(var(--color-foreground));
+  min-height: 100vh;
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+/* Premium glass effect for cards */
+.glass-card {
+  backdrop-filter: blur(24px);
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Smooth transitions */
+* {
+  transition-property: color, background-color, border-color;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
