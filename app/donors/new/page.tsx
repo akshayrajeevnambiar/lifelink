@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import PhotoUpload from "@/components/photo-upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,21 +13,69 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { createDonorAction } from "@/app/actions/donor-actions";
+import { toast } from "sonner";
+import { Loader2, AlertCircle } from "lucide-react";
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
 
 export default function NewDonorPage() {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoPublicId, setPhotoPublicId] = useState<string | null>(null);
+  const [bloodGroup, setBloodGroup] = useState<string>("");
+  const [phoneNumber, setPhoneNumber] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
   const handlePhotoUpload = (url: string, publicId: string) => {
     setPhotoUrl(url);
     setPhotoPublicId(publicId);
-    console.log("Photo uploaded:", { url, publicId });
   };
 
   const handlePhotoRemove = () => {
     setPhotoUrl(null);
     setPhotoPublicId(null);
-    console.log("Photo removed");
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    // Clear previous errors
+    setError(null);
+    setFieldErrors({});
+
+    const formData = new FormData(e.currentTarget);
+
+    // Add phone number manually (PhoneInput doesn't use standard form field)
+    if (phoneNumber) {
+      formData.append("phone", phoneNumber);
+    }
+
+    // Add photo data if exists
+    if (photoUrl) formData.append("photoUrl", photoUrl);
+    if (photoPublicId) formData.append("photoPublicId", photoPublicId);
+
+    // Add consent (checkbox value)
+    const consentCheckbox = formData.get("consent");
+    formData.append("consentGiven", consentCheckbox ? "true" : "false");
+
+    startTransition(async () => {
+      const result = await createDonorAction(formData);
+
+      if (result.ok) {
+        toast.success(result.message || "Donor registered successfully!");
+        router.push(`/search`);
+      } else {
+        setError(result.message || "Something went wrong");
+        if (result.fieldErrors) {
+          setFieldErrors(result.fieldErrors);
+        }
+        toast.error(result.message || "Failed to register donor");
+      }
+    });
   };
 
   return (
@@ -39,7 +88,15 @@ export default function NewDonorPage() {
           Help save lives by registering as a blood donor
         </p>
 
-        <form className="space-y-6">
+        {/* Global Error */}
+        {error && (
+          <div className="mb-6 flex items-start space-x-2 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
+            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-400">{error}</p>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Photo Upload */}
           <div>
             <Label htmlFor="photo-upload" className="text-slate-300 mb-2 block">
@@ -49,6 +106,7 @@ export default function NewDonorPage() {
               onUploadComplete={handlePhotoUpload}
               onRemove={handlePhotoRemove}
               currentPhotoUrl={photoUrl}
+              disabled={isPending}
             />
           </div>
 
@@ -59,10 +117,15 @@ export default function NewDonorPage() {
             </Label>
             <Input
               id="name"
+              name="name"
               placeholder="John Doe"
               className="mt-2 bg-slate-800/50 border-slate-700"
               required
+              disabled={isPending}
             />
+            {fieldErrors.name && (
+              <p className="text-sm text-red-400 mt-1">{fieldErrors.name[0]}</p>
+            )}
           </div>
 
           {/* Blood Group */}
@@ -70,21 +133,48 @@ export default function NewDonorPage() {
             <Label htmlFor="bloodGroup" className="text-slate-300">
               Blood Group *
             </Label>
-            <Select required>
+            <Select
+              name="bloodGroup"
+              required
+              disabled={isPending}
+              value={bloodGroup}
+              onValueChange={setBloodGroup}
+            >
               <SelectTrigger className="mt-2 bg-slate-800/50 border-slate-700">
                 <SelectValue placeholder="Select blood group" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="A_POSITIVE">A+</SelectItem>
-                <SelectItem value="A_NEGATIVE">A-</SelectItem>
-                <SelectItem value="B_POSITIVE">B+</SelectItem>
-                <SelectItem value="B_NEGATIVE">B-</SelectItem>
-                <SelectItem value="AB_POSITIVE">AB+</SelectItem>
-                <SelectItem value="AB_NEGATIVE">AB-</SelectItem>
-                <SelectItem value="O_POSITIVE">O+</SelectItem>
-                <SelectItem value="O_NEGATIVE">O-</SelectItem>
+              <SelectContent className="bg-slate-900 border-slate-700">
+                <SelectItem value="A_POSITIVE" className="focus:bg-slate-800">
+                  A+
+                </SelectItem>
+                <SelectItem value="A_NEGATIVE" className="focus:bg-slate-800">
+                  A-
+                </SelectItem>
+                <SelectItem value="B_POSITIVE" className="focus:bg-slate-800">
+                  B+
+                </SelectItem>
+                <SelectItem value="B_NEGATIVE" className="focus:bg-slate-800">
+                  B-
+                </SelectItem>
+                <SelectItem value="AB_POSITIVE" className="focus:bg-slate-800">
+                  AB+
+                </SelectItem>
+                <SelectItem value="AB_NEGATIVE" className="focus:bg-slate-800">
+                  AB-
+                </SelectItem>
+                <SelectItem value="O_POSITIVE" className="focus:bg-slate-800">
+                  O+
+                </SelectItem>
+                <SelectItem value="O_NEGATIVE" className="focus:bg-slate-800">
+                  O-
+                </SelectItem>
               </SelectContent>
             </Select>
+            {fieldErrors.bloodGroup && (
+              <p className="text-sm text-red-400 mt-1">
+                {fieldErrors.bloodGroup[0]}
+              </p>
+            )}
           </div>
 
           {/* Location */}
@@ -94,29 +184,50 @@ export default function NewDonorPage() {
             </Label>
             <Input
               id="location"
+              name="location"
               placeholder="Toronto, ON"
               className="mt-2 bg-slate-800/50 border-slate-700"
               required
+              disabled={isPending}
             />
+            {fieldErrors.location && (
+              <p className="text-sm text-red-400 mt-1">
+                {fieldErrors.location[0]}
+              </p>
+            )}
           </div>
 
-          {/* Phone */}
+          {/* Phone with Country Code */}
           <div>
             <Label htmlFor="phone" className="text-slate-300">
               Phone Number *
             </Label>
-            <Input
-              id="phone"
-              type="tel"
-              placeholder="+1 (416) 555-0123"
-              className="mt-2 bg-slate-800/50 border-slate-700"
-              required
+            <PhoneInput
+              international
+              defaultCountry="IN" // Changed from "CA" to "IN"
+              value={phoneNumber}
+              onChange={(value) => setPhoneNumber(value || "")}
+              disabled={isPending}
+              className="mt-2 phone-input-custom"
+              placeholder="+91 98765 43210" // Indian format placeholder
             />
+            {fieldErrors.phone && (
+              <p className="text-sm text-red-400 mt-1">
+                {fieldErrors.phone[0]}
+              </p>
+            )}
           </div>
 
           {/* Consent */}
           <div className="flex items-start space-x-2 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-            <input type="checkbox" id="consent" className="mt-1" required />
+            <input
+              type="checkbox"
+              id="consent"
+              name="consent"
+              className="mt-1"
+              required
+              disabled={isPending}
+            />
             <Label
               htmlFor="consent"
               className="text-sm text-slate-300 cursor-pointer"
@@ -126,10 +237,26 @@ export default function NewDonorPage() {
               of blood donations.
             </Label>
           </div>
+          {fieldErrors.consentGiven && (
+            <p className="text-sm text-red-400 mt-1">
+              {fieldErrors.consentGiven[0]}
+            </p>
+          )}
 
           {/* Submit Button */}
-          <Button type="submit" className="w-full h-12 text-base rounded-xl">
-            Register as Donor
+          <Button
+            type="submit"
+            className="w-full h-12 text-base rounded-xl"
+            disabled={isPending}
+          >
+            {isPending ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Registering...
+              </>
+            ) : (
+              "Register as Donor"
+            )}
           </Button>
         </form>
       </div>
