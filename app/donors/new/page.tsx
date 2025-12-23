@@ -88,7 +88,17 @@ export default function NewDonorPage() {
           Help save lives by registering as a blood donor
         </p>
 
-        {/* Global Error */}
+        {/* ADD THIS - Live region for screen readers (invisible but announced) */}
+        <div
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
+        >
+          {error && `Error: ${error}`}
+        </div>
+
+        {/* Global Error (this already exists) */}
         {error && (
           <div className="mb-6 flex items-start space-x-2 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
             <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
@@ -97,7 +107,7 @@ export default function NewDonorPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Photo Upload */}
+          {/* Photo Upload - stays as is */}
           <div>
             <Label htmlFor="photo-upload" className="text-slate-300 mb-2 block">
               Profile Photo (Optional)
@@ -110,10 +120,13 @@ export default function NewDonorPage() {
             />
           </div>
 
-          {/* Name */}
+          {/* REPLACE your existing Name field with this: */}
           <div>
             <Label htmlFor="name" className="text-slate-300">
-              Full Name *
+              Full Name{" "}
+              <span className="text-red-400" aria-label="required">
+                *
+              </span>
             </Label>
             <Input
               id="name"
@@ -122,16 +135,27 @@ export default function NewDonorPage() {
               className="mt-2 bg-slate-800/50 border-slate-700"
               required
               disabled={isPending}
+              aria-invalid={fieldErrors.name ? "true" : "false"}
+              aria-describedby={fieldErrors.name ? "name-error" : undefined}
             />
             {fieldErrors.name && (
-              <p className="text-sm text-red-400 mt-1">{fieldErrors.name[0]}</p>
+              <p
+                id="name-error"
+                className="text-sm text-red-400 mt-1"
+                role="alert"
+              >
+                {fieldErrors.name[0]}
+              </p>
             )}
           </div>
 
-          {/* Blood Group */}
+          {/* REPLACE your existing Blood Group field with this: */}
           <div>
             <Label htmlFor="bloodGroup" className="text-slate-300">
-              Blood Group *
+              Blood Group{" "}
+              <span className="text-red-400" aria-label="required">
+                *
+              </span>
             </Label>
             <Select
               name="bloodGroup"
@@ -171,93 +195,78 @@ export default function NewDonorPage() {
               </SelectContent>
             </Select>
             {fieldErrors.bloodGroup && (
-              <p className="text-sm text-red-400 mt-1">
+              <p
+                id="bloodGroup-error"
+                className="text-sm text-red-400 mt-1"
+                role="alert"
+              >
                 {fieldErrors.bloodGroup[0]}
               </p>
             )}
           </div>
 
-          {/* Location */}
+          {/* Apply the same pattern to Location and Phone fields */}
           <div>
             <Label htmlFor="location" className="text-slate-300">
-              Location *
+              Location{" "}
+              <span className="text-red-400" aria-label="required">
+                *
+              </span>
             </Label>
             <Input
               id="location"
               name="location"
-              placeholder="Toronto, ON"
+              placeholder="Mumbai, Maharashtra"
               className="mt-2 bg-slate-800/50 border-slate-700"
               required
               disabled={isPending}
+              aria-invalid={fieldErrors.location ? "true" : "false"}
+              aria-describedby={
+                fieldErrors.location ? "location-error" : undefined
+              }
             />
             {fieldErrors.location && (
-              <p className="text-sm text-red-400 mt-1">
+              <p
+                id="location-error"
+                className="text-sm text-red-400 mt-1"
+                role="alert"
+              >
                 {fieldErrors.location[0]}
               </p>
             )}
           </div>
 
-          {/* Phone with Country Code */}
           <div>
             <Label htmlFor="phone" className="text-slate-300">
-              Phone Number *
+              Phone Number{" "}
+              <span className="text-red-400" aria-label="required">
+                *
+              </span>
             </Label>
             <PhoneInput
               international
-              defaultCountry="IN" // Changed from "CA" to "IN"
+              defaultCountry="IN"
               value={phoneNumber}
               onChange={(value) => setPhoneNumber(value || "")}
               disabled={isPending}
               className="mt-2 phone-input-custom"
-              placeholder="+91 98765 43210" // Indian format placeholder
+              placeholder="+91 98765 43210"
+              aria-invalid={fieldErrors.phone ? "true" : "false"}
+              aria-describedby={fieldErrors.phone ? "phone-error" : undefined}
             />
             {fieldErrors.phone && (
-              <p className="text-sm text-red-400 mt-1">
+              <p
+                id="phone-error"
+                className="text-sm text-red-400 mt-1"
+                role="alert"
+              >
                 {fieldErrors.phone[0]}
               </p>
             )}
           </div>
 
-          {/* Consent */}
-          <div className="flex items-start space-x-2 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-            <input
-              type="checkbox"
-              id="consent"
-              name="consent"
-              className="mt-1"
-              required
-              disabled={isPending}
-            />
-            <Label
-              htmlFor="consent"
-              className="text-sm text-slate-300 cursor-pointer"
-            >
-              I confirm that I have consent to share my contact details and
-              photo (if provided) publicly to help connect with people in need
-              of blood donations.
-            </Label>
-          </div>
-          {fieldErrors.consentGiven && (
-            <p className="text-sm text-red-400 mt-1">
-              {fieldErrors.consentGiven[0]}
-            </p>
-          )}
-
-          {/* Submit Button */}
-          <Button
-            type="submit"
-            className="w-full h-12 text-base rounded-xl"
-            disabled={isPending}
-          >
-            {isPending ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Registering...
-              </>
-            ) : (
-              "Register as Donor"
-            )}
-          </Button>
+          {/* Consent - rest stays the same */}
+          {/* Submit button - rest stays the same */}
         </form>
       </div>
     </div>

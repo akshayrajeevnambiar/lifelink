@@ -82,16 +82,13 @@ export function formatPhoneDisplay(
  * isValidPhone("4165550123") → true
  * isValidPhone("123") → false
  */
-export function isValidPhone(
-  phone: string,
-  country: "US" | "CA" = "CA"
-): boolean {
+export function isValidPhone(phone: string): boolean {
   try {
-    const digits = normalizePhoneDigits(phone);
-    const phoneWithCountry = digits.startsWith("1")
-      ? `+${digits}`
-      : `+1${digits}`;
-    return isValidPhoneNumber(phoneWithCountry, country);
+    // Phone should start with + and have at least 10 digits
+    if (!phone.startsWith("+")) return false;
+
+    const digits = phone.replace(/\D/g, "");
+    return digits.length >= 10;
   } catch {
     return false;
   }
@@ -221,8 +218,11 @@ export const updateDonorSchema = z.object({
   phone: z
     .string()
     .min(10, "Phone number must be at least 10 digits")
-    .refine((phone) => isValidPhone(phone), "Invalid phone number format")
-    .optional(),
+    .refine((phone) => {
+      // Phone must start with + and have at least 10 digits
+      const digits = phone.replace(/\D/g, "");
+      return phone.startsWith("+") && digits.length >= 10;
+    }, "Please enter a valid phone number with country code (e.g., +91 98765 43210)"),
 
   isAvailable: z.boolean().optional(),
 
