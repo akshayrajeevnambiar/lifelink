@@ -11,8 +11,8 @@ import {
   cleanDisplayLocation,
 } from "@/lib/validations";
 import { sanitizeName, sanitizeLocation } from "@/lib/sanitize";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
-// Return type for consistent error handling
 type ActionResult = {
   ok: boolean;
   message?: string;
@@ -20,52 +20,27 @@ type ActionResult = {
   donorId?: string;
 };
 
-// Simple rate limiting (replace with Redis in production)
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-
-function checkRateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
-  const now = Date.now();
-  const record = rateLimitMap.get(ip);
-  const limit = 3; // 3 registrations
-  const window = 30 * 60 * 1000; // per 30 minutes
-
-  if (!record || now > record.resetTime) {
-    rateLimitMap.set(ip, { count: 1, resetTime: now + window });
-    return { allowed: true };
-  }
-
-  if (record.count >= limit) {
-    const retryAfter = Math.ceil((record.resetTime - now) / 1000);
-    return { allowed: false, retryAfter };
-  }
-
-  record.count++;
-  return { allowed: true };
-}
-
 export async function createDonorAction(
   formData: FormData
 ): Promise<ActionResult> {
   try {
-    // Get IP from headers for rate limiting
+    // Rate limiting with Redis
     const headersList = await headers();
-    const ip =
-      headersList.get("x-forwarded-for") ||
-      headersList.get("x-real-ip") ||
-      "unknown";
+    const ip = getClientIp(headersList);
 
-    // Check rate limit
-    const rateLimit = checkRateLimit(ip);
-    if (!rateLimit.allowed) {
+    const rateLimitResult = await rateLimit(`create-donor:${ip}`, 3, 1800); // 3 per 30 min
+
+    if (!rateLimitResult.success) {
       return {
         ok: false,
         message: `Too many registration attempts. Please try again in ${Math.ceil(
-          (rateLimit.retryAfter || 0) / 60
+          (rateLimitResult.retryAfter || 0) / 60
         )} minutes.`,
       };
     }
 
-    // Extract form data
+    // ... rest of donor creation logic stays the same ...
+
     const rawData = {
       name: formData.get("name") as string,
       bloodGroup: formData.get("bloodGroup") as string,
@@ -76,7 +51,6 @@ export async function createDonorAction(
       consentGiven: formData.get("consentGiven") === "true",
     };
 
-    // Validate with Zod schema
     const validation = createDonorSchema.safeParse(rawData);
 
     if (!validation.success) {
@@ -89,17 +63,14 @@ export async function createDonorAction(
 
     const data = validation.data;
 
-    // Sanitize inputs (XSS prevention)
     const sanitizedName = sanitizeName(data.name);
     const sanitizedLocation = sanitizeLocation(data.location);
 
-    // Normalize data for database
     const phoneDigits = normalizePhoneDigits(data.phone);
     const phoneDisplay = formatPhoneDisplay(data.phone);
     const locationNormalized = normalizeLocation(sanitizedLocation);
     const locationDisplay = cleanDisplayLocation(sanitizedLocation);
 
-    // Check for duplicate (same phone + blood + location)
     const existingDonor = await prisma.donor.findUnique({
       where: {
         phoneDigits_bloodGroup_locationNormalized: {
@@ -118,7 +89,6 @@ export async function createDonorAction(
       };
     }
 
-    // Create donor
     const donor = await prisma.donor.create({
       data: {
         name: sanitizedName,
@@ -134,7 +104,6 @@ export async function createDonorAction(
       },
     });
 
-    // Revalidate search page cache (shows new donor immediately)
     revalidatePath("/search");
 
     return {
