@@ -267,6 +267,26 @@ export default function NewDonorPage() {
 
           {/* Consent - rest stays the same */}
           {/* Submit button - rest stays the same */}
+          {/* Submit Button */}
+          <Button
+            type="submit"
+            className="w-full h-12 text-base rounded-xl"
+            disabled={isPending}
+            aria-busy={isPending}
+            aria-live="polite"
+          >
+            {isPending ? (
+              <>
+                <Loader2
+                  className="mr-2 h-5 w-5 animate-spin"
+                  aria-hidden="true"
+                />
+                Registering...
+              </>
+            ) : (
+              "Register as Donor"
+            )}
+          </Button>
         </form>
       </div>
     </div>
