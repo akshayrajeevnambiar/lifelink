@@ -86,7 +86,6 @@ export async function POST(request: NextRequest) {
     const uploadParams = {
       timestamp,
       folder,
-      upload_preset: "ml_default",
     };
 
     // Generate signature
