@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // url line removed - now handled in prisma.config.ts
+  url      = env("DATABASE_URL")
 }
 
 enum BloodGroup {
