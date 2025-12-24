@@ -72,8 +72,20 @@ export default function NewDonorPage() {
         setError(result.message || "Something went wrong");
         if (result.fieldErrors) {
           setFieldErrors(result.fieldErrors);
+          // Show all field errors as toast and log
+          Object.entries(result.fieldErrors).forEach(([field, errors]) => {
+            errors.forEach((msg) => {
+              toast.error(
+                `${field.charAt(0).toUpperCase() + field.slice(1)}: ${msg}`
+              );
+              console.error(`Field error [${field}]: ${msg}`);
+            });
+          });
         }
         toast.error(result.message || "Failed to register donor");
+        if (!result.fieldErrors) {
+          console.error(result.message || "Failed to register donor");
+        }
       }
     });
   };
@@ -98,8 +110,8 @@ export default function NewDonorPage() {
           {error && `Error: ${error}`}
         </div>
 
-        {/* Global Error (this already exists) */}
-        {error && (
+        {/* Global Error: only show if no field errors */}
+        {error && Object.keys(fieldErrors).length === 0 && (
           <div className="mb-6 flex items-start space-x-2 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
             <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-red-400">{error}</p>
@@ -138,14 +150,16 @@ export default function NewDonorPage() {
               aria-invalid={fieldErrors.name ? "true" : "false"}
               aria-describedby={fieldErrors.name ? "name-error" : undefined}
             />
-            {fieldErrors.name && (
-              <p
+            {fieldErrors.name && fieldErrors.name.length > 0 && (
+              <ul
                 id="name-error"
                 className="text-sm text-red-400 mt-1"
                 role="alert"
               >
-                {fieldErrors.name[0]}
-              </p>
+                {fieldErrors.name.map((msg, i) => (
+                  <li key={i}>{msg}</li>
+                ))}
+              </ul>
             )}
           </div>
 
@@ -194,14 +208,16 @@ export default function NewDonorPage() {
                 </SelectItem>
               </SelectContent>
             </Select>
-            {fieldErrors.bloodGroup && (
-              <p
+            {fieldErrors.bloodGroup && fieldErrors.bloodGroup.length > 0 && (
+              <ul
                 id="bloodGroup-error"
                 className="text-sm text-red-400 mt-1"
                 role="alert"
               >
-                {fieldErrors.bloodGroup[0]}
-              </p>
+                {fieldErrors.bloodGroup.map((msg, i) => (
+                  <li key={i}>{msg}</li>
+                ))}
+              </ul>
             )}
           </div>
 
@@ -225,14 +241,16 @@ export default function NewDonorPage() {
                 fieldErrors.location ? "location-error" : undefined
               }
             />
-            {fieldErrors.location && (
-              <p
+            {fieldErrors.location && fieldErrors.location.length > 0 && (
+              <ul
                 id="location-error"
                 className="text-sm text-red-400 mt-1"
                 role="alert"
               >
-                {fieldErrors.location[0]}
-              </p>
+                {fieldErrors.location.map((msg, i) => (
+                  <li key={i}>{msg}</li>
+                ))}
+              </ul>
             )}
           </div>
 
@@ -254,19 +272,54 @@ export default function NewDonorPage() {
               aria-invalid={fieldErrors.phone ? "true" : "false"}
               aria-describedby={fieldErrors.phone ? "phone-error" : undefined}
             />
-            {fieldErrors.phone && (
-              <p
+            {fieldErrors.phone && fieldErrors.phone.length > 0 && (
+              <ul
                 id="phone-error"
                 className="text-sm text-red-400 mt-1"
                 role="alert"
               >
-                {fieldErrors.phone[0]}
-              </p>
+                {fieldErrors.phone.map((msg, i) => (
+                  <li key={i}>{msg}</li>
+                ))}
+              </ul>
             )}
           </div>
 
-          {/* Consent - rest stays the same */}
-          {/* Submit button - rest stays the same */}
+          {/* Consent Checkbox */}
+          <div>
+            <label
+              className="flex items-center gap-2 text-slate-300"
+              htmlFor="consent"
+            >
+              <input
+                id="consent"
+                name="consent"
+                type="checkbox"
+                className="accent-red-500 w-4 h-4"
+                required
+                disabled={isPending}
+                aria-invalid={fieldErrors.consentGiven ? "true" : "false"}
+                aria-describedby={
+                  fieldErrors.consentGiven ? "consent-error" : undefined
+                }
+              />
+              I consent to my data being used for blood donation purposes{" "}
+              <span className="text-red-400">*</span>
+            </label>
+            {fieldErrors.consentGiven &&
+              fieldErrors.consentGiven.length > 0 && (
+                <ul
+                  id="consent-error"
+                  className="text-sm text-red-400 mt-1"
+                  role="alert"
+                >
+                  {fieldErrors.consentGiven.map((msg, i) => (
+                    <li key={i}>{msg}</li>
+                  ))}
+                </ul>
+              )}
+          </div>
+
           {/* Submit Button */}
           <Button
             type="submit"
